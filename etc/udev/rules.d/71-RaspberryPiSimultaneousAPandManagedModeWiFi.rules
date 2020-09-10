@@ -1,0 +1,4 @@
+# Enables simultaneous AP & Managed Mode on the PI Zero W and Raspberry Pi 4 onboard WiFi
+ACTION=="add", SUBSYSTEM=="ieee80211", SUBSYSTEMS=="sdio", KERNELS=="mmc1:0001:1", DRIVERS=="brcmfmac", KERNEL=="phy0", \
+  PROGRAM="/usr/bin/awk '/^Revision\t: / {sub(\"^1000\", \"\", $3); print $3}' /proc/cpuinfo", RESULT=="9000c1|a03111|b03111|c03111", \
+  RUN+="/sbin/iw phy phy0 interface add ap0 type __ap"
