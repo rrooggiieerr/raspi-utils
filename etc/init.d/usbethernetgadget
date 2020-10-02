@@ -9,6 +9,10 @@
 # Default-Stop:      0 1 6
 # Short-Description: Switch to USB Ethernet Gadget when no USB device is connected on Raspberry Pi 0 and 4
 ### END INIT INFO
+# Add to /boot/config.txt
+# [pi0w]
+# # Enable USB Gadget driver
+# dtoverlay=dwc2
 
 # A space separated list of USB Gadget compatible Raspberry Pi board revisions
 usbGadgetCompatibleRevisions=" 900092 900093 920093 9000c1 a03111 b03111 c03111 "
@@ -27,7 +31,12 @@ start)
 	fi
 	# Raspberry Pi is compatible with USB Gadget mode
 
-	log_daemon_msg "Starting $DESC" "$NAME"
+	# Check if a USB device is connected
+	if lsusb -s 1:2 > /dev/null; then
+		log_warning_msg "A USB device is connected"
+		exit 0
+	fi
+	# No USB device is connected
 
 	# Check if dwc2 is enabled
 	if ! lsusb -v -s 1:1 2> /dev/null| grep -q " iManufacturer .* dwc2_hsotg$"; then
@@ -36,12 +45,11 @@ start)
 	fi
 	# dwc2 is enabled
 
-	# Check if a USB device is connected
-	if lsusb -s 1:2 > /dev/null; then
-		log_warning_msg "A USB device is connected"
-		exit 1
-	fi
-	# No USB device is connected
+	log_daemon_msg "Starting $DESC" "$NAME"
+
+	# Load the kernel modules for dwc2 and Ethernet Gadget
+	/sbin/modprobe dwc2
+	/sbin/modprobe g_ether
 
 	# Make sure the USB Ethernet Gadget host and device MAC address is always the same between restarts
 	if [ ! -f /etc/modprobe.d/g_ether.conf ]; then
@@ -49,10 +57,6 @@ start)
 		USBGADGETHOSTMACADDRESS=`/bin/dmesg | /bin/sed -n 's/^.*] usb0: HOST MAC \(.*\)$/\1/p'`
 		echo "options g_ether host_addr=$USBGADGETHOSTMACADDRESS dev_addr=$USBGADGETMACADDRESS" > /etc/modprobe.d/g_ether.conf
 	fi
-
-	# Load the kernel modules for dwc2 and Ethernet Gadget
-	/sbin/modprobe dwc2
-	/sbin/modprobe g_ether
 
 	# Check if the Ethernet Gadget interface usb0 is created
 	if ! /sbin/ifconfig usb0 > /dev/null; then
