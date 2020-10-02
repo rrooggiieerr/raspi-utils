@@ -35,6 +35,6 @@ if ! grep -q "^interface=usb0" /etc/dnsmasq.conf; then
 	cat << EOF >> /etc/dnsmasq.conf
 
 interface=usb0
-  dhcp-range=192.168.151.2,192.168.151.2,255.255.255.254,1m
+  dhcp-range=192.168.151.2,192.168.151.2,255.255.255.252,1m
 EOF
 fi
