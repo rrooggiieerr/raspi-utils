@@ -27,7 +27,7 @@ if [ ! -e /usr/sbin/dnsmasq ]; then
 	apt -y upgrade
 	
 	echo 'Installing dnsmasq package'
-        apt -y install dnsmasq
+	apt -y install dnsmasq
 fi
 
 # Configure fixed IP address
@@ -46,8 +46,8 @@ if [ ! -e /etc/network/interfaces.d/usb0 ]; then
 auto usb0
 allow-hotplug usb0 
 iface usb0 inet static
-        address 192.168.151.1
-        netmask 255.255.255.252
+	address 192.168.151.1
+	netmask 255.255.255.252
 EOF
 fi
 
