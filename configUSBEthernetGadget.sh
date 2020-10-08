@@ -25,7 +25,7 @@ update-rc.d usbethernetgadget enable
 if [ ! -e /usr/sbin/dnsmasq ]; then
 	apt -y update
 	apt -y upgrade
-	
+
 	echo 'Installing dnsmasq package'
 	apt -y install dnsmasq
 fi
@@ -44,7 +44,7 @@ fi
 if [ ! -e /etc/network/interfaces.d/usb0 ]; then
 	cat << EOF > /etc/network/interfaces.d/usb0
 auto usb0
-allow-hotplug usb0 
+allow-hotplug usb0
 iface usb0 inet static
 	address 192.168.151.1
 	netmask 255.255.255.252
