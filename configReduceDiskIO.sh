@@ -54,3 +54,10 @@ if ! grep -q '^\S*\s*\/var\/log\s' /etc/fstab; then
 	mount /var/log
 	systemctl start rsyslog
 fi
+
+# Increase ext4 commit interval
+
+if grep ext4 /etc/fstab | grep -vq commit; then
+	backupFile /etc/fstab
+	sed '/^.*\s*[^\t ]*commit[^\t ]*\s.*$/b; s|^\(.*\sext4\s*[^\t ]*\)\(\s.*\)$|\1,commit=300\2|' -i /etc/fstab
+fi
