@@ -2,16 +2,20 @@
 
 # Check if we are root
 if [ "$(id -u)" -ne 0 ]; then
-	echo 'You should run this installation script as root!'
+	echo 'You should run this configuration script as root!'
 	exit 1
 fi
 
 TIMESTAMP=`date '+%Y%m%d%H%M%S'`
 backupFile() {
-        [ -f "$1" ] && [ ! -f "$1".old$TIMESTAMP ] && cp -p "$1" "$1".old$TIMESTAMP
+	[ -f "$1" ] && [ ! -f "$1".old$TIMESTAMP ] && cp -p "$1" "$1".old$TIMESTAMP
 }
 
-if [ ! -s ~pi/.ssh/authorized_keys ]; then
+[ -z "SUDO_USER" ] && SUDO_USER=pi
+[ -z "SUDO_UID" ] && SUDO_UID=1000
+[ -z "SUDO_GID" ] && SUDO_GID=1000
+
+if [ ! -s ~$SUDO_USER/.ssh/authorized_keys ]; then
 	# Ask for SSH public key
 	echo 'It is recommended to use key based authentication for SSH'
 	echo 'Your SSH public key, leave empty to keep using a password instead'
@@ -21,19 +25,20 @@ if [ ! -s ~pi/.ssh/authorized_keys ]; then
 
 	if [ -n "$SSHPUBLICKEY" ]; then
 		echo
-		mkdir -p ~pi/.ssh
-		echo "$SSHPUBLICKEY" >> ~pi/.ssh/authorized_keys
-		chown -R pi:pi ~pi/.ssh
+		mkdir -p ~$SUDO_USER/.ssh
+		echo "$SSHPUBLICKEY" >> ~$SUDO_USER/.ssh/authorized_keys
+		chown -R $SUDO_UID:$SUDO_GID ~$SUDO_USER/.ssh
+		usermod -p "*" $SUDO_USER
 	elif [ -e /run/sshwarn ]; then
-		# Change user pi password
+		# Change user password
 		echo
-		echo 'You need to change the default password for user pi'
-		passwd pi
+		echo "You need to change the default password for user $SUDO_USER"
+		passwd $SUDO_USER
 	fi
 fi
 
 # Disable password authentication in SSH daemon if authorized_keys are configured
-if [ -s ~pi/.ssh/authorized_keys ]; then
+if [ -s ~$SUDO_USER/.ssh/authorized_keys ]; then
 	echo
 	echo 'You are using key based authentication for SSH, disabling password based authentication'
 	backupFile /etc/ssh/sshd_config
