@@ -30,7 +30,7 @@ if [ ! -s $SUDO_USER_HOME/.ssh/authorized_keys ]; then
 		mkdir -p $SUDO_USER_HOME/.ssh
 		echo "$SSHPUBLICKEY" >> $SUDO_USER_HOME/.ssh/authorized_keys
 		chown -R $SUDO_UID:$SUDO_GID $SUDO_USER_HOME/.ssh
-		// Disable password of sudo user
+		# Disable password of sudo user
 		usermod -p "*" $SUDO_USER
 	elif [ -e /run/sshwarn ]; then
 		# Change user password
