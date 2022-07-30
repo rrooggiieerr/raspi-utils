@@ -34,6 +34,15 @@ if [ ! -e /usr/sbin/dnsmasq ]; then
 	apt -y install dnsmasq || exit 1
 fi
 
+# Configure /etc/dhcpcd.conf
+if ! grep -q "^denyinterfaces " /etc/dhcpcd.conf; then
+	backupFile /etc/dhcpcd.conf
+	echo -e "\ndenyinterfaces usb0" >> /etc/dhcpcd.conf
+elif ! grep -q "^denyinterfaces " /etc/dhcpcd.conf | grep -q usb0; then
+	backupFile /etc/dhcpcd.conf
+	sed 's|^denyinterfaces .*$|\0 usb0|' -i /etc/dhcpcd.conf
+fi
+
 # Configure fixed IP address
 if [ ! -e /etc/network/interfaces.d/usb0 ]; then
 	cat << EOF > /etc/network/interfaces.d/usb0
