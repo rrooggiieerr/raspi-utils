@@ -21,9 +21,9 @@ systemctl -q is-enabled dphys-swapfile &&
 	systemctl disable dphys-swapfile
 
 # Limit logging
-#backupFile /etc/logrotate.conf
-#sed 's|^weekly$|daily|' -i /etc/logrotate.conf
-#sed 's|^rotate .*$|rotate 0|' -i /etc/logrotate.conf
+backupFile /etc/logrotate.conf
+sed 's|^weekly$|daily|' -i /etc/logrotate.conf
+sed 's|^rotate .*$|rotate 1|' -i /etc/logrotate.conf
 
 # Mount /boot read only
 if grep -q '^\S*\s*\/boot\s*\S*\s*defaults\s' /etc/fstab; then
