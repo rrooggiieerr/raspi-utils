@@ -7,15 +7,23 @@
 # Should-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Switch to USB Ethernet Gadget when no USB device is connected on Raspberry Pi 0 and 4
+# Short-Description: Enable USB Ethernet Gadget on Raspberry Pi Zero and 4
 ### END INIT INFO
 # Add to /boot/config.txt
-# [pi0w]
+# [pi0]
+# # Enable USB Gadget driver
+# dtoverlay=dwc2
+# 
+# [pi4]
 # # Enable USB Gadget driver
 # dtoverlay=dwc2
 
-# A space separated list of USB Gadget compatible Raspberry Pi board revisions
-usbGadgetCompatibleRevisions=" 900092 900093 920093 9000c1 a03111 b03111 c03111 "
+# A space separated list of USB Gadget compatible Raspberry Pi Zero and 4 board revisions
+# See https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-revision-codes
+pi0Revisions="900092 900093 920092 920093"
+pi0wRevisions="9000c1"
+pi02Revisions="902120"
+pi4Revisions="a03111 b03111 b03112 b03114 b03115 c03111 c03112 c03114 c03115 d03114 d03115"
 
 DESC="USB Ethernet Gadget"
 
@@ -25,21 +33,21 @@ case "$1" in
 start)
 	# Check if the Raspberry Pi is compatible with USB Gadget mode
 	piRevision=`awk '/^Revision\t: / {sub("^1000", "", $3); print $3}' /proc/cpuinfo`
-	if ! echo "$usbGadgetCompatibleRevisions" | grep -q " $piRevision "; then
+	if ! echo " $pi0Revisions $pi0wRevisions $pi02Revisions $pi4Revisions " | grep -q " $piRevision "; then
 		echo "Raspberry Pi is not compatible with USB Gadget mode"
 		exit 0
 	fi
 	# Raspberry Pi is compatible with USB Gadget mode
 
-	# Check if a USB device is connected
-	if lsusb -s 1:2 > /dev/null; then
+	# Check if a USB device is connected on Pi Zero
+	if echo " $pi0Revisions $pi0wRevisions $pi02Revisions " | grep -q " $piRevision " && lsusb -s 1:2 > /dev/null; then
 		log_warning_msg "A USB device is connected"
 		exit 0
 	fi
-	# No USB device is connected
+	# No USB device is connected on Pi Zero
 
 	# Check if dwc2 is enabled
-	if ! lsusb -v -s 1:1 2> /dev/null| grep -q " iManufacturer .* dwc2_hsotg$"; then
+	if ! lsusb -v 2> /dev/null| grep -q " iManufacturer .* dwc2_hsotg$"; then
 		log_warning_msg "dwc2 is not enabled"
 		exit 1
 	fi
@@ -47,21 +55,79 @@ start)
 
 	log_daemon_msg "Starting $DESC" "$NAME"
 
-	# Load the kernel modules for dwc2 and Ethernet Gadget
+	# Load the kernel modules for dwc2
 	/sbin/modprobe dwc2
-	/sbin/modprobe g_ether
 
-	# Make sure the USB Ethernet Gadget host and device MAC address is always the same between restarts
-	if [ ! -f /etc/modprobe.d/g_ether.conf ]; then
-		USBGADGETMACADDRESS=`cat /sys/class/net/usb0/address`
-		USBGADGETHOSTMACADDRESS=`/bin/dmesg | /bin/sed -n 's/^.*] usb0: HOST MAC \(.*\)$/\1/p'`
-		echo "options g_ether host_addr=$USBGADGETHOSTMACADDRESS dev_addr=$USBGADGETMACADDRESS" > /etc/modprobe.d/g_ether.conf
-	fi
+	/sbin/modprobe libcomposite
+	(
+		mkdir -p /sys/kernel/config/usb_gadget/pi4
+		cd /sys/kernel/config/usb_gadget/pi4
+		echo 0x1d6b > idVendor # Linux Foundation
+		echo 0x0104 > idProduct # Multifunction Composite Gadget
+		echo 0x0100 > bcdDevice # v1.0.0
+		echo 0x0200 > bcdUSB # USB2
+		echo 0xEF > bDeviceClass
+		echo 0x02 > bDeviceSubClass
+		echo 0x01 > bDeviceProtocol
+
+		# Windows extensions to force config
+		echo "1" > os_desc/use
+		echo "0xcd" > os_desc/b_vendor_code
+		echo "MSFT100" > os_desc/qw_sign
+
+		mkdir -p strings/0x409
+		sed -n 's/^Serial\s*: \(\w*\)/\1/p' /proc/cpuinfo > strings/0x409/serialnumber
+		echo "Raspberry Pi Foundation" > strings/0x409/manufacturer
+		if echo " $pi0Revisions " | grep -q " $piRevision "; then
+			echo "Raspberry Pi Zero" > strings/0x409/product
+		elif echo " $pi0wRevisions " | grep -q " $piRevision "; then
+			echo "Raspberry Pi Zero W" > strings/0x409/product
+		elif echo " $pi02Revisions " | grep -q " $piRevision "; then
+			echo "Raspberry Pi Zero 2 W" > strings/0x409/product
+		elif echo " $pi4Revisions " | grep -q " $piRevision "; then
+			echo "Raspberry Pi 4" > strings/0x409/product
+		fi
+
+		# Linux/MacOS support
+		mkdir -p functions/ecm.usb0
+
+		# Windows support
+		mkdir functions/rndis.usb0
+		echo "RNDIS" > functions/rndis.usb0/os_desc/interface.rndis/compatible_id
+		echo "5162001" > functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id
+
+		if [ -f /etc/usb_gadget.usb0 ]; then
+			MAC_DEV=`head -1 /etc/usb_gadget.usb0`
+			MAC_HOST=`head -2 /etc/usb_gadget.usb0 | tail -1`
+
+			# Linux/MacOS support
+			echo "$MAC_HOST" > functions/ecm.usb0/host_addr
+			echo "$MAC_DEV" > functions/ecm.usb0/dev_addr
+
+			# Windows support
+			echo "$MAC_HOST" > functions/rndis.usb0/host_addr
+			echo "$MAC_DEV" > functions/rndis.usb0/dev_addr
+		fi
+
+		mkdir -p configs/c.1/strings/0x409
+		#echo "RNDIS network+ECM network+CDC 2xACM" > configs/c.1/strings/0x409/configuration
+		echo 250 > configs/c.1/MaxPower
+		ln -s functions/ecm.usb0 configs/c.1/
+
+		udevadm settle -t 5 || :
+		ls /sys/class/udc > UDC
+	)
 
 	# Check if the Ethernet Gadget interface usb0 is created
 	if ! /sbin/ifconfig usb0 > /dev/null; then
 		log_warning_msg "usb0 device not created"
 		exit 1
+	fi
+
+	# Make sure the USB Ethernet Gadget host and device MAC address is always the same between restarts
+	if [ ! -f /etc/usb_gadget.usb0 ]; then
+		cat /sys/class/net/usb0/address > /etc/usb_gadget.usb0
+		/bin/dmesg | /bin/sed -n 's/^.*] usb0: HOST MAC \(.*\)$/\1/p' >> /etc/usb_gadget.usb0
 	fi
 
 	# Successful!
@@ -72,7 +138,11 @@ stop)
 	log_daemon_msg "Stopping $DESC" "$NAME"
 
 	# Unload the kernel modules for dwc2 and Ethernet Gadget
-	if ! /sbin/rmmod g_ether 2> /dev/null; then
+	if [ -e /sys/kernel/config/usb_gadget/pi4 ]; then
+		echo "" > /sys/kernel/config/usb_gadget/pi4/UDC
+		#TODO rmdir /sys/kernel/config/usb_gadget/pi4
+	fi
+	if ! /sbin/rmmod libcomposite 2> /dev/null; then
 		log_warning_msg "(not running)"
 		exit 1
 	fi
