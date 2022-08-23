@@ -21,7 +21,7 @@ fi
 
 TIMESTAMP=`date '+%Y%m%d%H%M%S'`
 backupFile() {
-	[ -f "$1" ] && [ ! -f "$1".old$TIMESTAMP ] && cp -p "$1" "$1".old$TIMESTAMP
+	[ -f "$1" ] && [ ! -f "$1.old$TIMESTAMP" ] && cp -p "$1" "$1.old$TIMESTAMP"
 }
 
 # Reduce disk IO
