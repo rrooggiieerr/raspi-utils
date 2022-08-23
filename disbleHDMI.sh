@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Disable Raspberry Pi HDMI port
+# Disable Raspberry Pi HDMI port, mainly to reduce power consumption in a battery run setup
 #
 # By Rogier van Staveren
 # https://github.com/rrooggiieerr/raspi-utils/
