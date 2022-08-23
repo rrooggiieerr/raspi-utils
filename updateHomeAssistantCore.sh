@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# By Rogier van Staveren
+# https://github.com/rrooggiieerr/raspi-utils/
+#
 
 # Check if we are root
 if [ "$(id -u)" -ne 0 ]; then
