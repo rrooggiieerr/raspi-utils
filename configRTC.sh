@@ -1,9 +1,12 @@
 #!/bin/bash
 #
-# Real Time Clock
+# Configures I2C Real Time Clock modiles on Raspberry Pi
+#
+# By Rogier van Staveren
+# https://github.com/rrooggiieerr/raspi-utils/
 #
 
-echo 'Description goed here.
+echo 'This script will configure I2C based real time clock modules.
 '
 
 # Check if we are root
