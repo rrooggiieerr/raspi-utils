@@ -1,15 +1,25 @@
 #!/bin/bash
 #
+# Deploy Uncomplicated Firewall and Fail2Ban
+#
+# By Rogier van Staveren
+# https://github.com/rrooggiieerr/raspi-utils/
+#
+
+echo 'This script will deploy Uncomplicated Firewall and Fail2Ban.
 
 # Check if we are root
 if [ "$(id -u)" -ne 0 ]; then
 	echo 'You should run this installation script as root!'
 	exit 1
+else
+	read -p 'Press Ctrl-C to quit or any other key to continue.' -n 1
+	echo
 fi
 
 TIMESTAMP=`date '+%Y%m%d%H%M%S'`
 backupFile() {
-	[ -f "$1" ] && [ ! -f "$1".old$TIMESTAMP ] && cp -p "$1" "$1".old$TIMESTAMP
+	[ -f "$1" ] && [ ! -f "$1.old$TIMESTAMP" ] && cp -p "$1" "$1.old$TIMESTAMP"
 }
 
 # Setup Uncomplicated Firewall
