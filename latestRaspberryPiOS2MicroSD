@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# By Rogier van Staveren
+# https://github.com/rrooggiieerr/raspi-utils/
+#
 
 RASPBIANHOST='downloads.raspberrypi.org'
 #RASPBIANLATESTURL="https://$RASPBIANHOST/raspbian_lite_latest"
